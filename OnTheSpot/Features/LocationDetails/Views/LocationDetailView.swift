@@ -64,8 +64,12 @@ struct LocationDetailView: View {
                 // Status Update Buttons
                 StatusUpdateView(locationType: location.category) { newStatus in
                     withAnimation {
+                        // 1. Update the Location
                         self.location.currentStatus = newStatus
                         self.location.lastUpdate = Date()
+                        
+                        // 2. TRIGGER NOTIFICATION (The Connection)
+                        DataManager.shared.triggerNotification(for: self.location)
                     }
                 }
 
@@ -146,3 +150,10 @@ struct EditLocationView: View {
         .preferredColorScheme(.dark)
     }
 }
+struct LocationDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        // You MUST provide a constant value for bindings!
+        LocationDetailView(location: .constant(Location.mockData[0]))
+    }
+}
+

@@ -1,7 +1,7 @@
 import SwiftUI
-import Combine
 import MapKit
 import CoreLocation
+import Combine
 
 class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     
@@ -10,13 +10,38 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
     )
     
-    @Published var locations: [Location] = Location.mockData
+    @Published var locations: [Location] = []
     @Published var currentUserLocation: CLLocationCoordinate2D?
     
+    @Published var selectedCategory: String? = nil
+    
+    let categories = ["Study Spot", "Fast Food", "Canteen", "Cafe", "Terminal", "Parking"]
+    
+    var filteredLocations: [Location] {
+        guard let category = selectedCategory else {
+            return locations
+        }
+        return locations.filter { $0.category == category }
+    }
+    
+    func toggleCategory(_ category: String) {
+        if selectedCategory == category {
+            selectedCategory = nil
+        } else {
+            selectedCategory = category
+        }
+    }
+    
     private let locationManager = CLLocationManager()
+    private var cancellables = Set<AnyCancellable>()
     
     override init() {
         super.init()
+        
+        DataManager.shared.$locations
+            .assign(to: \.locations, on: self)
+            .store(in: &cancellables)
+            
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 10
@@ -36,24 +61,11 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        
-        // 1. Save your real location
         self.currentUserLocation = location.coordinate
-        
-        // 2. AUTO-FOLLOW: Snap the camera to your location instantly
-        withAnimation {
-             self.region = MKCoordinateRegion(
-                center: location.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
-            )
-        }
     }
-
     
     func addNewSpot(name: String, category: String) {
-        // If we don't have a GPS signal, use the center of the screen
         let coord = currentUserLocation ?? region.center
-        
         let newLocation = Location(
             name: name,
             category: category,
@@ -61,10 +73,6 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             currentStatus: .available,
             lastUpdate: Date()
         )
-        
-        withAnimation {
-            self.locations.append(newLocation)
-        }
+        DataManager.shared.addLocation(newLocation)
     }
 }
-

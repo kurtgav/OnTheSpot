@@ -8,8 +8,10 @@ enum AppState {
 }
 
 struct RootView: View {
-    // Start at onboarding
     @State private var currentState: AppState = .onboarding
+    
+    // CONNECT TO DATA MANAGER
+    @ObservedObject var dataManager = DataManager.shared
     
     var body: some View {
         ZStack {
@@ -21,10 +23,12 @@ struct RootView: View {
                 AuthView(appState: $currentState)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .home:
-                AppMainView() // Your existing Tab View
+                AppMainView()
                     .transition(.move(edge: .bottom))
             }
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: currentState)
+        // 🔥 THEME SWITCHER MAGIC 🔥
+        .preferredColorScheme(dataManager.isDarkMode ? .dark : .light)
     }
 }
