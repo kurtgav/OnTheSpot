@@ -1,25 +1,20 @@
 import SwiftUI
 
 struct AtmosphereBackground: View {
-    var color: Color = .primaryAccent
+    var color: Color
     
     var body: some View {
         ZStack {
-            Color.appBackground.ignoresSafeArea()
-            
-            // Top Left Glow
-            Circle()
-                .fill(color.opacity(0.2))
-                .frame(width: 300, height: 300)
-                .blur(radius: 100)
-                .offset(x: -100, y: -200)
-            
-            // Bottom Right Glow
-            Circle()
-                .fill(Color.blue.opacity(0.1))
-                .frame(width: 300, height: 300)
-                .blur(radius: 100)
-                .offset(x: 100, y: 200)
+            // Use a simple Gradient instead of heavy Blur for performance
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    color.opacity(0.3),
+                    Color(UIColor.systemBackground)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
         }
     }
 }

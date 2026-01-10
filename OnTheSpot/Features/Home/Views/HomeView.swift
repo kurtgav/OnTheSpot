@@ -3,14 +3,13 @@ import MapKit
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @ObservedObject var dataManager = DataManager.shared
-    @State private var showAddSheet = false
     
-    // Sheet State
+    // 🔥 CHANGE: Use CloudDataManager here
+    @ObservedObject var dataManager = CloudDataManager.shared
+    
+    @State private var showAddSheet = false
     @State private var sheetOffset: CGFloat = 0
     @State private var isSheetOpen: Bool = true
-    
-    // Constants
     let openHeight: CGFloat = 400
     let hiddenOffset: CGFloat = 450
     
@@ -62,11 +61,13 @@ struct HomeView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showAddSheet) {
-                AddSpotView { name, category in
-                    viewModel.addNewSpot(name: name, category: category)
+                // UPDATE THIS BLOCK
+                AddSpotView { newLocation in
+                    // Pass the fully formed location to the Cloud
+                    CloudDataManager.shared.addLocation(newLocation)
                 }
             }
-        }
+}
         .preferredColorScheme(.dark)
     }
     
@@ -86,45 +87,28 @@ struct HomeView: View {
     }
 }
 
-// MARK: - 1. Map Struct (Upgraded Pins)
+// MARK: - 1. Map Struct (Resized Pins)
+// MARK: - 1. Map Struct (Upgraded to Clustering)
 struct HomeMapLayer: View {
     @Binding var region: MKCoordinateRegion
     var locations: [Location]
     var onMapTap: () -> Void
     
     var body: some View {
-        Map(
-            coordinateRegion: $region,
-            showsUserLocation: true,
-            annotationItems: locations
-        ) { location in
-            MapAnnotation(coordinate: location.coordinate) {
-                // 3D Pin Style
-                ZStack {
-                    Circle()
-                        .fill(location.currentStatus.color.opacity(0.3))
-                        .frame(width: 40, height: 40)
-                    
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 26, height: 26)
-                        .shadow(radius: 2)
-                    
-                    Image(systemName: location.currentStatus.iconName)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(location.currentStatus.color)
-                        .frame(width: 14, height: 14)
-                }
-                .offset(y: -10) // Lift pin slightly above coordinate
-            }
-        }
+        // USE THE NEW POWERFUL MAP
+        ClusteredMapView(
+            region: $region,
+            locations: locations,
+            onMapTap: onMapTap
+        )
         .ignoresSafeArea()
+        // We keep the tap gesture on the wrapper to handle sheet closing
         .onTapGesture { onMapTap() }
     }
 }
 
-// MARK: - 2. Header Struct (Unified "Floating Island")
+
+// MARK: - 2. Header Struct
 struct HomeHeaderLayer: View {
     var categories: [String]
     var selectedCategory: String?
@@ -134,49 +118,38 @@ struct HomeHeaderLayer: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 16) {
-                // Top Row: Greeting + Live Badge
+                // Top Row
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ON THE SPOT")
                             .font(.system(size: 10, weight: .black))
                             .tracking(2)
-                            .foregroundColor(.secondaryText)
+                            .foregroundColor(.secondary) // Adaptive Grey
                         Text("Find your vibe.")
                             .font(.title3)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary) // 🔥 FIX: Adaptive Black/White
                     }
-                    
                     Spacer()
-                    
-                    // Live Pulse Badge
                     HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 6, height: 6)
-                        Text("LIVE MAP")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
+                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                        Text("LIVE MAP").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.4))
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Color.black.opacity(0.8)).cornerRadius(12)
                 }
                 
-                // Bottom Row: Category Pills
+                // Categories
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { category in
                             Button(action: { withAnimation { onToggle(category) } }) {
                                 Text(category)
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(selectedCategory == category ? .black : .white)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
+                                    .foregroundColor(selectedCategory == category ? .black : .primary) // Adaptive
+                                    .padding(.horizontal, 14).padding(.vertical, 8)
                                     .background(
-                                        selectedCategory == category ? Color.primaryAccent : Color.white.opacity(0.1)
+                                        selectedCategory == category ? Color.primaryAccent : Color.gray.opacity(0.1)
                                     )
                                     .cornerRadius(20)
                             }
@@ -185,17 +158,12 @@ struct HomeHeaderLayer: View {
                 }
             }
             .padding(20)
-            // GLASS EFFECT
-            .background(.ultraThinMaterial)
+            .background(Color(UIColor.systemBackground).opacity(0.95)) // Adaptive Background
             .cornerRadius(24)
-            .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
-            .padding(.horizontal, 16)
-            .padding(.top, 10) // Safe Area padding
-            
+            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+            .padding(.horizontal, 16).padding(.top, 10)
             Spacer()
         }
-        // Hide header when sheet is up to reduce clutter? (Optional, kept visible for now)
-        .opacity(isSheetOpen ? 1.0 : 1.0)
     }
 }
 
@@ -268,44 +236,32 @@ struct HomeShowListButton: View {
     }
 }
 
-// MARK: - 5. Bottom Sheet (Tight Layout)
+// MARK: - 5. Bottom Sheet (Ultra Compact)
 struct HomeBottomSheet: View {
     @Binding var isOpen: Bool
     @Binding var offset: CGFloat
     var categoryTitle: String?
     var locations: [Location]
-    var dataManager: DataManager
+    var dataManager: CloudDataManager
     
-    // Constants
+    @State private var showSuggestions = true
+    
     let sheetHeight: CGFloat = 350
-    let peekOffset: CGFloat = 520
+    let peekOffset: CGFloat = 270
     
     var body: some View {
         VStack {
             Spacer()
-            
-            // MAIN BLACK FRAME
             VStack(spacing: 0) {
-                
-                // 1. Unified Header (Handle + Title)
-                VStack(spacing: 12) {
-                    // Drag Capsule
+                // 1. Handle Area (Fixed Small Height)
+                ZStack {
+                    Color(UIColor.secondarySystemBackground)
                     Capsule()
-                        .fill(Color.white.opacity(0.2))
+                        .fill(Color.gray.opacity(0.3))
                         .frame(width: 36, height: 4)
-                        .padding(.top, 12)
-                    
-                    // Title (Moved Up)
-                    Text(categoryTitle ?? "Nearby Spots")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
                 }
-                .padding(.bottom, 15) // Small gap before list starts
-                // Make the whole header draggable
-                .background(Color.appBackground)
+                .frame(height: 20) // Force it small
+                .frame(maxWidth: .infinity)
                 .gesture(
                     DragGesture()
                         .onChanged { value in
@@ -321,26 +277,49 @@ struct HomeBottomSheet: View {
                         }
                 )
                 
-                // 2. Content List (Fills the rest)
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(locations) { location in
-                            if let binding = dataManager.binding(for: location.id) {
-                                NavigationLink(destination: LocationDetailView(location: binding)) {
-                                    StatusCardView(location: location)
+                VStack(alignment: .leading, spacing: 0) {
+                    // 2. Header (Moved Up)
+                    HStack {
+                        Text(categoryTitle ?? "Nearby Spots")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color.primary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 34)
+                    .padding(.bottom, 8) // Minimal gap before list
+                    
+                    // Suggestion
+                    if showSuggestions && locations.isEmpty {
+                        HStack {
+                            Text("Try searching for 'Jollibee'").font(.caption).foregroundColor(.gray)
+                            Spacer()
+                            Button("Dismiss") { withAnimation { showSuggestions = false } }.font(.caption).foregroundColor(.red)
+                        }
+                        .padding(.horizontal, 24).padding(.bottom, 4)
+                    }
+                    
+                    // 3. List (Dense)
+                    ScrollView {
+                        VStack(spacing: 0) { // Zero spacing between rows
+                            ForEach(locations) { location in
+                                if let binding = dataManager.binding(for: location.id) {
+                                    NavigationLink(destination: LocationDetailView(location: binding)) {
+                                        StatusCardView(location: location)
+                                            .padding(.vertical, 4) // Minimal padding per card
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 120)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 120)
                 }
-                .background(Color.appBackground)
+                .background(Color(UIColor.secondarySystemBackground))
             }
-            .background(Color.appBackground) // The whole frame is black
             .cornerRadius(30, corners: [.topLeft, .topRight])
-            .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: -5)
+            .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: -5)
             .frame(height: sheetHeight)
             .offset(y: isOpen ? offset : peekOffset)
         }
@@ -348,8 +327,7 @@ struct HomeBottomSheet: View {
     }
 }
 
-
-// Helpers
+// MARK: - Shape Helper for Custom Corners
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
@@ -359,14 +337,28 @@ extension View {
 struct RoundedCorner: Shape {
     var radius: CGFloat = .infinity
     var corners: UIRectCorner = .allCorners
+
     func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
         return Path(path.cgPath)
     }
 }
-
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
+        // We create a view but we don't need to mock CloudManager
+        // because we handled errors gracefully in the code.
         HomeView()
+            // Preview in Dark Mode
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Dark Mode")
+        
+        HomeView()
+            // Preview in Light Mode
+            .preferredColorScheme(.light)
+            .previewDisplayName("Light Mode")
     }
 }

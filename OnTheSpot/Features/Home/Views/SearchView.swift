@@ -2,33 +2,37 @@ import SwiftUI
 
 struct SearchView: View {
     @StateObject private var viewModel = SearchViewModel()
-    @ObservedObject var dataManager = DataManager.shared
+    @ObservedObject var cloudManager = CloudDataManager.shared
+    
+    @State private var recentSearches = ["Jollibee", "Library", "Parking"]
     
     var body: some View {
         NavigationView {
             ZStack {
-                // 1. New Glow Background
-                AtmosphereBackground(color: .purple)
+                // Background
+                Color(UIColor.systemBackground).ignoresSafeArea()
+                AtmosphereBackground(color: .purple).opacity(0.3)
                 
                 VStack(spacing: 0) {
-                    // --- HEADER ---
+                    // HEADER
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Discover")
                             .font(.system(size: 34, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         
                         HStack {
-                            Image(systemName: "magnifyingglass").foregroundColor(.white.opacity(0.6))
+                            Image(systemName: "magnifyingglass").foregroundColor(.gray)
                             TextField("Search...", text: $viewModel.searchText)
                                 .accentColor(.primaryAccent)
+                                .foregroundColor(.primary)
                             if viewModel.isFiltering {
                                 Button(action: { withAnimation { viewModel.clearAll() } }) {
-                                    Image(systemName: "xmark.circle.fill").foregroundColor(.white)
+                                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
                                 }
                             }
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
+                        .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(16)
                     }
                     .padding(.horizontal)
@@ -42,15 +46,19 @@ struct SearchView: View {
                             if viewModel.isFiltering {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack {
-                                        if let cat = viewModel.selectedCategory { FilterBadge(text: cat) { withAnimation { viewModel.selectedCategory = nil }}}
-                                        if let vibe = viewModel.selectedVibe { FilterBadge(text: vibe) { withAnimation { viewModel.selectedVibe = nil }}}
+                                        if let cat = viewModel.selectedCategory {
+                                            FilterBadge(text: cat) { withAnimation { viewModel.selectedCategory = nil }}
+                                        }
+                                        if let vibe = viewModel.selectedVibe {
+                                            FilterBadge(text: vibe) { withAnimation { viewModel.selectedVibe = nil }}
+                                        }
                                     }
                                     .padding(.horizontal)
                                 }
                                 
                                 LazyVStack(spacing: 12) {
                                     ForEach(viewModel.filteredLocations) { location in
-                                        if let binding = dataManager.binding(for: location.id) {
+                                        if let binding = cloudManager.binding(for: location.id) {
                                             NavigationLink(destination: LocationDetailView(location: binding)) {
                                                 StatusCardView(location: location)
                                             }
@@ -63,15 +71,55 @@ struct SearchView: View {
                             
                             // B. MAGAZINE DISCOVERY
                             else {
-                                // 1. FEATURED (Large Cards)
+                                // 1. CATEGORIES
                                 VStack(alignment: .leading) {
-                                    Text("Trending Now")
-                                        .font(.title3).fontWeight(.bold).foregroundColor(.white).padding(.horizontal)
-                                    
+                                    Text("Categories").font(.headline).foregroundColor(.gray).padding(.horizontal)
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(viewModel.categories, id: \.self) { category in
+                                                Button(action: { withAnimation { viewModel.toggleCategory(category) } }) {
+                                                    Text(category)
+                                                        .fontWeight(.semibold)
+                                                        .foregroundColor(.white)
+                                                        .padding(.horizontal, 20).padding(.vertical, 10)
+                                                        .background(Color.gray.opacity(0.3)).cornerRadius(20)
+                                                        .overlay(Capsule().stroke(Color.gray.opacity(0.5), lineWidth: 1))
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                                
+                                // 2. RECENT SEARCHES
+                                if !recentSearches.isEmpty && viewModel.searchText.isEmpty {
+                                    VStack(alignment: .leading) {
+                                        Text("Recent").font(.caption).fontWeight(.bold).foregroundColor(.gray).padding(.horizontal)
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack {
+                                                ForEach(recentSearches, id: \.self) { term in
+                                                    Button(action: { viewModel.searchText = term }) {
+                                                        Text(term)
+                                                            .font(.subheadline)
+                                                            .padding(.horizontal, 16).padding(.vertical, 8)
+                                                            .background(Color(UIColor.secondarySystemBackground))
+                                                            .cornerRadius(20)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                        }
+                                    }
+                                }
+                                
+                                // 3. TRENDING NOW
+                                VStack(alignment: .leading) {
+                                    Text("Trending Now").font(.title3).fontWeight(.bold).foregroundColor(.primary).padding(.horizontal)
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 20) {
                                             ForEach(viewModel.trendingLocations) { location in
-                                                if let binding = dataManager.binding(for: location.id) {
+                                                if let binding = cloudManager.binding(for: location.id) {
                                                     NavigationLink(destination: LocationDetailView(location: binding)) {
                                                         BigFeaturedCard(location: location)
                                                     }
@@ -83,30 +131,9 @@ struct SearchView: View {
                                     }
                                 }
                                 
-                                // 2. CATEGORIES
+                                // 4. VIBE CHECK
                                 VStack(alignment: .leading) {
-                                    Text("Categories").font(.headline).foregroundColor(.white.opacity(0.7)).padding(.horizontal)
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
-                                            ForEach(viewModel.categories, id: \.self) { category in
-                                                Button(action: { withAnimation { viewModel.toggleCategory(category) } }) {
-                                                    Text(category)
-                                                        .fontWeight(.semibold)
-                                                        .foregroundColor(.white)
-                                                        .padding(.horizontal, 20)
-                                                        .padding(.vertical, 10)
-                                                        .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal)
-                                    }
-                                }
-                                
-                                // 3. VIBE CHECK
-                                VStack(alignment: .leading) {
-                                    Text("Vibe Check").font(.title3).fontWeight(.bold).foregroundColor(.white).padding(.horizontal)
-                                    
+                                    Text("Vibe Check").font(.title3).fontWeight(.bold).foregroundColor(.primary).padding(.horizontal)
                                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
                                         ForEach(viewModel.vibes, id: \.title) { vibe in
                                             ColorfulVibeCard(vibe: vibe) {
@@ -127,34 +154,28 @@ struct SearchView: View {
     }
 }
 
-// --- HELPER FUNCTION FOR FIXED IMAGES ---
-func getFixedImage(for locationName: String) -> String {
-    if locationName.contains("Library") { return "trend1" }
-    if locationName.contains("Jollibee") { return "trend2" }
-    if locationName.contains("Canteen") { return "trend3" }
-    // Fallback for others to prevent crashes, reusing them consistently
-    if locationName.contains("Parking") { return "trend1" }
-    return "trend2" // Default
-}
-
-// MARK: - Components
+// MARK: - SUBCOMPONENTS (These fix the "Cannot find" errors)
 
 struct BigFeaturedCard: View {
     let location: Location
     
+    // Helper to get image based on name (so it's consistent)
+    var image: String {
+        if location.name.contains("Jollibee") { return "trend2" }
+        if location.name.contains("Library") { return "trend1" }
+        return "trend3" // Default
+    }
+    
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            // FIXED IMAGE
-            Image(getFixedImage(for: location.name))
+            Image(image) // Using Asset Catalog Images
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 260, height: 350)
                 .clipped()
             
-            // Gradient Overlay
             LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
             
-            // Content
             VStack(alignment: .leading, spacing: 6) {
                 Text(location.currentStatus.title.uppercased())
                     .font(.system(size: 10, weight: .bold))
@@ -189,21 +210,13 @@ struct ColorfulVibeCard: View {
         Button(action: action) {
             HStack {
                 VStack(alignment: .leading) {
-                    Image(systemName: vibe.icon)
-                        .font(.title2)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 8)
-                    Text(vibe.title)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
+                    Image(systemName: vibe.icon).font(.title2).foregroundColor(.white).padding(.bottom, 8)
+                    Text(vibe.title).font(.headline).fontWeight(.bold).foregroundColor(.white)
                 }
                 Spacer()
             }
             .padding(20)
-            .background(
-                LinearGradient(colors: [vibe.color.opacity(0.8), vibe.color.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            )
+            .background(LinearGradient(colors: [vibe.color.opacity(0.8), vibe.color.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
             .cornerRadius(20)
         }
     }
@@ -219,10 +232,5 @@ struct FilterBadge: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(Color.primaryAccent).foregroundColor(.black).cornerRadius(20)
-    }
-}
-struct SearchView_Previews: PreviewProvider {
-    static var previews: some View {
-        SearchView()
     }
 }

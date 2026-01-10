@@ -12,11 +12,11 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     @Published var locations: [Location] = []
     @Published var currentUserLocation: CLLocationCoordinate2D?
-    
     @Published var selectedCategory: String? = nil
     
     let categories = ["Study Spot", "Fast Food", "Canteen", "Cafe", "Terminal", "Parking"]
     
+    // Filtering Logic
     var filteredLocations: [Location] {
         guard let category = selectedCategory else {
             return locations
@@ -25,11 +25,7 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     func toggleCategory(_ category: String) {
-        if selectedCategory == category {
-            selectedCategory = nil
-        } else {
-            selectedCategory = category
-        }
+        selectedCategory = (selectedCategory == category) ? nil : category
     }
     
     private let locationManager = CLLocationManager()
@@ -38,7 +34,10 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     override init() {
         super.init()
         
-        DataManager.shared.$locations
+        // 🔥 CRITICAL FIX: LISTEN TO CLOUD DATA MANAGER
+        // This connects the view model to the live internet database
+        CloudDataManager.shared.$locations
+            .receive(on: DispatchQueue.main) // Ensure updates happen on UI thread
             .assign(to: \.locations, on: self)
             .store(in: &cancellables)
             
@@ -64,15 +63,5 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         self.currentUserLocation = location.coordinate
     }
     
-    func addNewSpot(name: String, category: String) {
-        let coord = currentUserLocation ?? region.center
-        let newLocation = Location(
-            name: name,
-            category: category,
-            coordinate: coord,
-            currentStatus: .available,
-            lastUpdate: Date()
-        )
-        DataManager.shared.addLocation(newLocation)
-    }
+    // We don't need addNewSpot logic here anymore because HomeView calls CloudDataManager directly
 }

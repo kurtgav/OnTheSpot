@@ -1,17 +1,11 @@
 import SwiftUI
 
-enum LocationStatus {
-    // These are the cases the error says are missing. We define them here.
-    case quiet
-    case justRight
-    case noisy
-    case noLine
-    case shortLine
-    case longLine
-    case available
-    case inUse
+// Added String (Raw Value) and Codable
+enum LocationStatus: String, Codable {
+    case quiet, justRight, noisy
+    case noLine, shortLine, longLine
+    case available, inUse
     
-    // The clean title for the UI
     var title: String {
         switch self {
         case .quiet: return "Quiet"
@@ -25,7 +19,6 @@ enum LocationStatus {
         }
     }
     
-    // The SF Symbol icon name
     var iconName: String {
         switch self {
         case .quiet: return "waveform.path.ecg"
@@ -39,15 +32,17 @@ enum LocationStatus {
         }
     }
     
-    // The Matcha Theme Color
     var color: Color {
         switch self {
-        case .quiet, .noLine, .available:
-            return .primaryAccent // Matcha
-        case .justRight, .shortLine:
-            return Color.yellow.opacity(0.8)
-        case .noisy, .longLine, .inUse:
-            return Color.red.opacity(0.8)
+        case .quiet, .noLine, .available: return .primaryAccent
+        case .justRight, .shortLine: return .yellow
+        case .noisy, .longLine, .inUse: return .red
         }
     }
+}
+
+// Helpers
+extension LocationStatus {
+    static var moderate: LocationStatus { .shortLine }
+    static var occupied: LocationStatus { .inUse }
 }

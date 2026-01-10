@@ -6,7 +6,6 @@ class SearchViewModel: ObservableObject {
     @Published var selectedCategory: String? = nil
     @Published var selectedVibe: String? = nil
     
-    // This will mirror the Master Data
     @Published var allLocations: [Location] = []
     
     private var cancellables = Set<AnyCancellable>()
@@ -20,13 +19,14 @@ class SearchViewModel: ObservableObject {
     ]
     
     init() {
-        // SYNC: Listen to DataManager
-        DataManager.shared.$locations
+        // CRITICAL FIX: Listen to CloudDataManager
+        CloudDataManager.shared.$locations
+            .receive(on: DispatchQueue.main)
             .assign(to: \.allLocations, on: self)
             .store(in: &cancellables)
     }
     
-    // --- FILTERING LOGIC ---
+    // ... (Keep existing filtering logic) ...
     var filteredLocations: [Location] {
         var result = allLocations
         
@@ -46,10 +46,7 @@ class SearchViewModel: ObservableObject {
             result = result.filter { vibe.relatedStatuses.contains($0.currentStatus) }
         }
         
-        // Sort: Good statuses first
-        return result.sorted {
-            score(for: $0.currentStatus) > score(for: $1.currentStatus)
-        }
+        return result.sorted { score(for: $0.currentStatus) > score(for: $1.currentStatus) }
     }
     
     func score(for status: LocationStatus) -> Int {
@@ -60,32 +57,13 @@ class SearchViewModel: ObservableObject {
         }
     }
     
-    var isFiltering: Bool {
-        return !searchText.isEmpty || selectedCategory != nil || selectedVibe != nil
-    }
-    
-    func toggleCategory(_ category: String) {
-        selectedCategory = (selectedCategory == category) ? nil : category
-    }
-    
-    func toggleVibe(_ vibeTitle: String) {
-        selectedVibe = (selectedVibe == vibeTitle) ? nil : vibeTitle
-    }
-    
-    func clearAll() {
-        searchText = ""
-        selectedCategory = nil
-        selectedVibe = nil
-    }
-    
-    var trendingLocations: [Location] {
-        return Array(allLocations.prefix(3))
-    }
+    var isFiltering: Bool { !searchText.isEmpty || selectedCategory != nil || selectedVibe != nil }
+    func toggleCategory(_ category: String) { selectedCategory = (selectedCategory == category) ? nil : category }
+    func toggleVibe(_ vibeTitle: String) { selectedVibe = (selectedVibe == vibeTitle) ? nil : vibeTitle }
+    func clearAll() { searchText = ""; selectedCategory = nil; selectedVibe = nil }
+    var trendingLocations: [Location] { Array(allLocations.prefix(3)) }
 }
 
 struct VibeOption {
-    let title: String
-    let icon: String
-    let color: Color
-    let relatedStatuses: [LocationStatus]
+    let title: String; let icon: String; let color: Color; let relatedStatuses: [LocationStatus]
 }

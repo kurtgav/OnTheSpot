@@ -1,6 +1,5 @@
 import SwiftUI
 
-// MARK: - Main Profile View
 struct ProfileView: View {
     @ObservedObject var dataManager = DataManager.shared
     @State private var showEditProfile = false
@@ -9,41 +8,48 @@ struct ProfileView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Standard System Background
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
-                // Simple Animated Background
+                // Animated Background Blob
                 Circle()
-                    .fill(Color.green.opacity(0.2))
-                    .frame(width: 300, height: 300)
-                    .blur(radius: 100)
-                    .offset(x: -100, y: -200)
+                    .fill(Color.primaryAccent.opacity(0.15))
+                    .frame(width: 400, height: 400)
+                    .blur(radius: 120)
+                    .offset(x: 0, y: -250)
                     .rotationEffect(.degrees(animateRing ? 360 : 0))
-                    .animation(.linear(duration: 20).repeatForever(autoreverses: false), value: animateRing)
+                    .animation(.linear(duration: 30).repeatForever(autoreverses: false), value: animateRing)
                 
                 ScrollView {
-                    VStack(spacing: 30) {
-                        // 1. Header
+                    VStack(spacing: 24) {
+                        // 1. Header (Avatar + Name)
                         ProfileHeaderSubView(
                             userName: dataManager.userName,
                             userBio: dataManager.userBio,
                             userLocation: dataManager.userLocation,
                             levelProgress: dataManager.progressToNextLevel,
+                            profileImage: dataManager.profileImage,
                             animateRing: animateRing,
                             onEdit: { showEditProfile = true }
                         )
                         
-                        // 2. Stats
+                        // 2. Vibe Tags (New)
+                        if !DataManager.shared.userTags.isEmpty {
+                            VibeTagsRow(tags: DataManager.shared.userTags)
+                        }
+                        
+                        // 3. Stats (Points & Level)
                         ProfileStatsSubView(
                             points: dataManager.contributionPoints,
-                            spots: dataManager.spotsAdded
+                            spots: dataManager.spotsAdded,
+                            level: dataManager.userLevel
                         )
                         
-                        // 3. Settings
+                        // 4. Settings List
                         ProfileSettingsSubView(
                             isDarkMode: $dataManager.isDarkMode
                         )
                     }
+                    .padding(.bottom, 100)
                 }
             }
             .navigationBarHidden(true)
@@ -59,169 +65,204 @@ struct ProfileHeaderSubView: View {
     let userBio: String
     let userLocation: String
     let levelProgress: Double
+    let profileImage: UIImage?
     let animateRing: Bool
     let onEdit: () -> Void
     
     var body: some View {
-        VStack(spacing: 15) {
+        VStack(spacing: 20) {
+            // Edit Button (Top Right)
             HStack {
-                Text("My Profile")
-                    .font(.system(size: 34, weight: .black, design: .rounded))
-                    .foregroundColor(.primary)
                 Spacer()
                 Button(action: onEdit) {
-                    Text("Edit")
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
-                        .padding(.horizontal, 16).padding(.vertical, 8)
-                        .background(Color.green.opacity(0.1)).cornerRadius(20)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.primary)
+                        .padding(10)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .clipShape(Circle())
                 }
             }
-            .padding(.horizontal)
-            .padding(.top, 20)
+            .padding(.horizontal, 24)
+            .padding(.top, 10)
             
+            // Avatar Center
             ZStack {
-                Circle().stroke(Color.gray.opacity(0.2), lineWidth: 8)
-                    .frame(width: 130, height: 130)
+                // Level Ring
+                Circle()
+                    .stroke(Color.gray.opacity(0.1), lineWidth: 6)
+                    .frame(width: 140, height: 140)
                 
                 Circle()
                     .trim(from: 0, to: animateRing ? levelProgress : 0)
-                    .stroke(Color.green, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .frame(width: 130, height: 130).rotationEffect(.degrees(-90))
+                    .stroke(Color.primaryAccent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .frame(width: 140, height: 140)
+                    .rotationEffect(.degrees(-90))
                     .animation(.easeOut(duration: 1.5), value: animateRing)
                 
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 110))
-                    .foregroundColor(.gray.opacity(0.5))
+                // Image
+                if let image = profileImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 120, height: 120)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 120))
+                        .foregroundColor(.gray.opacity(0.3))
+                }
+                
+                // Level Badge
+                VStack {
+                    Spacer()
+                    Text("LVL \(Int(levelProgress * 10) + 1)") // Mock Level calc
+                        .font(.system(size: 10, weight: .black))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.primaryAccent)
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
+                        .offset(y: 12)
+                }
+                .frame(height: 140)
             }
             
+            // Info
             VStack(spacing: 6) {
                 Text(userName)
-                    .font(.title2).fontWeight(.bold).foregroundColor(.primary)
+                    .font(.title).fontWeight(.heavy)
+                    .foregroundColor(.primary)
+                
                 Text(userBio)
-                    .font(.subheadline).fontWeight(.medium).foregroundColor(.green)
-                    .multilineTextAlignment(.center).padding(.horizontal)
-                Text(userLocation)
-                    .font(.caption).foregroundColor(.gray).padding(.top, 2)
+                    .font(.body).fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "mappin.and.ellipse")
+                    Text(userLocation)
+                }
+                .font(.caption).fontWeight(.bold)
+                .foregroundColor(.gray)
+                .padding(.top, 4)
             }
         }
     }
 }
 
-// MARK: - 2. Stats SubView
+// MARK: - 2. Vibe Tags Row
+struct VibeTagsRow: View {
+    let tags: [String]
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(tags, id: \.self) { tag in
+                    Text(tag.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.primaryAccent.opacity(0.2))
+                        .foregroundColor(.primaryAccent) // Adaptive Green
+                        .cornerRadius(20)
+                }
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+}
+
+// MARK: - 3. Stats SubView
 struct ProfileStatsSubView: View {
     let points: Int
     let spots: Int
+    let level: String
     
     var body: some View {
-        HStack(spacing: 15) {
-            // Stat 1
-            VStack(spacing: 10) {
-                Image(systemName: "star.fill").font(.title2).foregroundColor(.yellow)
-                    .padding(10).background(Color.yellow.opacity(0.2)).clipShape(Circle())
-                VStack(spacing: 2) {
-                    Text("\(points)").font(.title3).fontWeight(.bold).foregroundColor(.primary)
-                    Text("Points").font(.caption).foregroundColor(.gray)
-                }
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 20)
-            .background(Color(UIColor.secondarySystemBackground)).cornerRadius(20)
-            
-            // Stat 2
-            VStack(spacing: 10) {
-                Image(systemName: "mappin.and.ellipse").font(.title2).foregroundColor(.blue)
-                    .padding(10).background(Color.blue.opacity(0.2)).clipShape(Circle())
-                VStack(spacing: 2) {
-                    Text("\(spots)").font(.title3).fontWeight(.bold).foregroundColor(.primary)
-                    Text("Spots").font(.caption).foregroundColor(.gray)
-                }
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 20)
-            .background(Color(UIColor.secondarySystemBackground)).cornerRadius(20)
-            
-            // Stat 3
-            VStack(spacing: 10) {
-                Image(systemName: "arrow.triangle.2.circlepath").font(.title2).foregroundColor(.green)
-                    .padding(10).background(Color.green.opacity(0.2)).clipShape(Circle())
-                VStack(spacing: 2) {
-                    Text("42").font(.title3).fontWeight(.bold).foregroundColor(.primary)
-                    Text("Updates").font(.caption).foregroundColor(.gray)
-                }
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 20)
-            .background(Color(UIColor.secondarySystemBackground)).cornerRadius(20)
+        HStack(spacing: 12) {
+            StatBox(title: "POINTS", value: "\(points)", icon: "star.fill", color: .yellow)
+            StatBox(title: "SPOTS", value: "\(spots)", icon: "mappin", color: .blue)
+            StatBox(title: "RANK", value: level, icon: "trophy.fill", color: .purple)
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 24)
     }
 }
 
-// MARK: - 3. Settings SubView
+struct StatBox: View {
+    let title: String; let value: String; let icon: String; let color: Color
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.title3).foregroundColor(color)
+                .padding(10)
+                .background(color.opacity(0.1))
+                .clipShape(Circle())
+            
+            VStack(spacing: 2) {
+                Text(value)
+                    .font(.headline).fontWeight(.bold).foregroundColor(.primary)
+                Text(title)
+                    .font(.system(size: 10, weight: .bold)).foregroundColor(.gray)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
+    }
+}
+
+// MARK: - 4. Settings SubView
 struct ProfileSettingsSubView: View {
     @Binding var isDarkMode: Bool
     
     var body: some View {
-        VStack(spacing: 15) {
-            // Header
-            Text("App Settings").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10).padding(.leading, 10)
+        VStack(spacing: 0) {
+            SettingRow(icon: "moon.stars.fill", title: "Dark Mode", toggle: $isDarkMode)
+            Divider()
+            SettingRow(icon: "bell.fill", title: "Notifications", toggle: .constant(true))
+            Divider()
+            SettingRow(icon: "lock.fill", title: "Privacy", isLink: true)
+            Divider()
             
-            VStack(spacing: 0) {
-                // Dark Mode Toggle
+            Button(action: { DataManager.shared.logOut() }) {
                 HStack {
-                    Image(systemName: "moon.stars.fill").foregroundColor(.gray).frame(width: 24)
-                    Text("Dark Mode").font(.body).foregroundColor(.primary)
-                    Spacer()
-                    Toggle("", isOn: $isDarkMode)
-                }
-                .padding()
-                
-                Divider()
-                
-                // Notification Dummy
-                HStack {
-                    Image(systemName: "bell.badge.fill").foregroundColor(.gray).frame(width: 24)
-                    Text("Notifications").font(.body).foregroundColor(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray)
-                }
-                .padding()
-            }
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(20)
-            
-            // Account Header
-            Text("Account").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10).padding(.leading, 10)
-            
-            VStack(spacing: 0) {
-                // Subscription Dummy
-                HStack {
-                    Image(systemName: "creditcard.fill").foregroundColor(.gray).frame(width: 24)
-                    Text("Subscription").font(.body).foregroundColor(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray)
-                }
-                .padding()
-                
-                Divider()
-                
-                // Log Out Dummy
-                Button(action: {}) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .foregroundColor(.red)
                     Text("Log Out").fontWeight(.bold).foregroundColor(.red)
-                        .frame(maxWidth: .infinity).padding()
+                    Spacer()
                 }
+                .padding()
             }
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(20)
         }
-        .padding(.horizontal).padding(.bottom, 40)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
+        .padding(.horizontal, 24)
     }
 }
 
-
-struct ProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProfileView()
-            .preferredColorScheme(.dark)
+struct SettingRow: View {
+    let icon: String
+    let title: String
+    var toggle: Binding<Bool>? = nil
+    var isLink: Bool = false
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(.gray)
+                .frame(width: 24)
+            Text(title).fontWeight(.medium)
+            Spacer()
+            
+            if let toggle = toggle {
+                Toggle("", isOn: toggle).labelsHidden()
+            } else if isLink {
+                Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray)
+            }
+        }
+        .padding()
     }
 }
