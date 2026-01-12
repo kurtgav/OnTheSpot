@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
-import FirebaseAuth // 👈 Crucial Import
+import FirebaseAuth
+import CoreLocation
 
 class DataManager: ObservableObject {
     static let shared = DataManager()
@@ -10,12 +11,22 @@ class DataManager: ObservableObject {
         didSet { UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode") }
     }
     
+    @Published var areNotificationsEnabled: Bool {
+           didSet { UserDefaults.standard.set(areNotificationsEnabled, forKey: "areNotificationsEnabled") }
+       }
+    
     // --- 2. USER PROFILE ---
     @Published var userName: String = "User"
     @Published var userBio: String = "Rookie"
     @Published var userLocation: String = "Unknown"
     @Published var profileImage: UIImage? = nil
     @Published var userTags: [String] = []
+    @Published var currentUserCoordinates: CLLocationCoordinate2D? = nil
+    @Published var userRole: String = ""
+    @Published var userCompany: String = ""
+    @Published var userStatus: String = "Open to coffee"
+    @Published var userBirthday: Date = Date()
+
     
     // --- 3. STATS ---
     @Published var contributionPoints: Int = 0
@@ -38,13 +49,13 @@ class DataManager: ObservableObject {
     private init() {
         self.isDarkMode = UserDefaults.standard.object(forKey: "isDarkMode") as? Bool ?? true
         
-        // Try loading image if user is already logged in
+        self.areNotificationsEnabled = UserDefaults.standard.object(forKey: "areNotificationsEnabled") as? Bool ?? true
+        
         if Auth.auth().currentUser != nil {
             loadProfileImage()
         }
     }
-    
-    // --- FIXED IMAGE LOGIC (Unique per User) ---
+
     func saveProfileImage(_ image: UIImage) {
         self.profileImage = image
         guard let uid = Auth.auth().currentUser?.uid else { return }

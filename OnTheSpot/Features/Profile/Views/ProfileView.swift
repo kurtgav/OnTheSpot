@@ -10,7 +10,7 @@ struct ProfileView: View {
             ZStack {
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
-                // Animated Background Blob
+                // animated bg blob
                 Circle()
                     .fill(Color.primaryAccent.opacity(0.15))
                     .frame(width: 400, height: 400)
@@ -21,7 +21,7 @@ struct ProfileView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // 1. Header (Avatar + Name)
+                        // header (ava+name)
                         ProfileHeaderSubView(
                             userName: dataManager.userName,
                             userBio: dataManager.userBio,
@@ -32,19 +32,19 @@ struct ProfileView: View {
                             onEdit: { showEditProfile = true }
                         )
                         
-                        // 2. Vibe Tags (New)
+                        // vibe tags
                         if !DataManager.shared.userTags.isEmpty {
                             VibeTagsRow(tags: DataManager.shared.userTags)
                         }
                         
-                        // 3. Stats (Points & Level)
+                        // stats (pts/lvl)
                         ProfileStatsSubView(
                             points: dataManager.contributionPoints,
                             spots: dataManager.spotsAdded,
                             level: dataManager.userLevel
                         )
                         
-                        // 4. Settings List
+                        // setting list
                         ProfileSettingsSubView(
                             isDarkMode: $dataManager.isDarkMode
                         )
@@ -71,7 +71,7 @@ struct ProfileHeaderSubView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Edit Button (Top Right)
+            // edit button (top right)
             HStack {
                 Spacer()
                 Button(action: onEdit) {
@@ -86,9 +86,9 @@ struct ProfileHeaderSubView: View {
             .padding(.horizontal, 24)
             .padding(.top, 10)
             
-            // Avatar Center
+            // ava center
             ZStack {
-                // Level Ring
+                // lvl ring
                 Circle()
                     .stroke(Color.gray.opacity(0.1), lineWidth: 6)
                     .frame(width: 140, height: 140)
@@ -100,7 +100,7 @@ struct ProfileHeaderSubView: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.easeOut(duration: 1.5), value: animateRing)
                 
-                // Image
+                // img
                 if let image = profileImage {
                     Image(uiImage: image)
                         .resizable()
@@ -113,10 +113,10 @@ struct ProfileHeaderSubView: View {
                         .foregroundColor(.gray.opacity(0.3))
                 }
                 
-                // Level Badge
+                // lvl badge
                 VStack {
                     Spacer()
-                    Text("LVL \(Int(levelProgress * 10) + 1)") // Mock Level calc
+                    Text("LVL \(Int(levelProgress * 10) + 1)") // mock lvl calc
                         .font(.system(size: 10, weight: .black))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

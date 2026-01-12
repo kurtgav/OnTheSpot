@@ -4,6 +4,7 @@ struct GroupChatView: View {
     let plan: Plan
     @State private var messageText = ""
     @ObservedObject var cloudManager = CloudDataManager.shared
+    @Environment(\.presentationMode) var presentationMode
     
     // Sheets
     @State private var showChatInfo = false
@@ -12,7 +13,6 @@ struct GroupChatView: View {
     
     var body: some View {
         ZStack {
-            // Wallpaper Background
             Color(UIColor.systemGroupedBackground).ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -21,83 +21,70 @@ struct GroupChatView: View {
                     ScrollViewReader { proxy in
                         LazyVStack(spacing: 8) {
                             Color.clear.frame(height: 10)
-                            
                             ForEach(cloudManager.currentChatMessages) { msg in
-                                ChatBubble(message: msg)
-                                    .id(msg.id)
+                                ChatBubble(message: msg).id(msg.id)
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 20)
+                        .padding(.horizontal, 12).padding(.bottom, 20)
                         .onChange(of: cloudManager.currentChatMessages.count) { _ in
-                            if let last = cloudManager.currentChatMessages.last {
-                                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                            }
+                            if let last = cloudManager.currentChatMessages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
                         }
                     }
                 }
                 .onTapGesture { UIApplication.shared.endEditing(true) }
                 
-                // 2. Input Bar (Glassy & Modern)
+                // 2. Input Bar
                 HStack(spacing: 12) {
                     Button(action: { showImagePicker = true }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.gray)
+                        Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(.gray)
                     }
-                    
                     TextField("Message...", text: $messageText)
-                        .padding(10)
-                        .padding(.horizontal, 4)
-                        .background(Color(UIColor.systemBackground))
-                        .cornerRadius(20)
+                        .padding(10).padding(.horizontal, 4)
+                        .background(Color(UIColor.systemBackground)).cornerRadius(20)
                         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.gray.opacity(0.2), lineWidth: 1))
                     
                     if !messageText.isEmpty {
                         Button(action: sendMessage) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.blue)
-                        }
-                        .transition(.scale)
+                            Image(systemName: "arrow.up.circle.fill").font(.system(size: 32)).foregroundColor(.blue)
+                        }.transition(.scale)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial) // Glass Effect
+                .padding(.horizontal).padding(.vertical, 10).background(.ultraThinMaterial)
             }
         }
-        // 🔥 CUSTOM TOOLBAR HEADER
         .navigationBarTitleDisplayMode(.inline)
+        // 🔥 CRITICAL: HIDE SYSTEM BUTTON
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+            }
+            // CENTER: Title
             ToolbarItem(placement: .principal) {
-                Button(action: { showChatInfo = true }) {
-                    VStack(spacing: 0) {
-                        Text(plan.title).font(.headline).foregroundColor(.primary)
-                        Text("\(plan.participants.count) members").font(.caption).foregroundColor(.gray)
-                    }
+                VStack(spacing: 0) {
+                    Text(plan.title).font(.headline).foregroundColor(.primary)
+                    Text("\(plan.participants.count) members").font(.caption).foregroundColor(.gray)
                 }
             }
             
+            // RIGHT: Info Icon
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showChatInfo = true }) {
-                    // Overlapping Avatars Icon
-                    ZStack {
-                        Circle().fill(Color.gray.opacity(0.2)).frame(width: 32, height: 32)
-                        Image(systemName: "info.circle").font(.system(size: 20))
-                    }
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 22)) // Matched weight with back button
+                        .foregroundColor(.blue)
                 }
             }
         }
-        .onAppear {
-            if let planId = plan.id { CloudDataManager.shared.listenToChat(planId: planId) }
-        }
+        .onAppear { if let planId = plan.id { CloudDataManager.shared.listenToChat(planId: planId) } }
         .sheet(isPresented: $showChatInfo) { ChatInfoView(plan: plan) }
         .sheet(isPresented: $showImagePicker) { ImagePicker(image: $inputImage) }
         .onChange(of: inputImage) { newImage in
-            if let img = newImage, let planId = plan.id {
-                CloudDataManager.shared.sendImageMessage(planId: planId, image: img)
-            }
+            if let img = newImage, let planId = plan.id { CloudDataManager.shared.sendImageMessage(planId: planId, image: img) }
         }
     }
     
@@ -108,41 +95,30 @@ struct GroupChatView: View {
     }
 }
 
-// MARK: - Modern Bubble
+// Subcomponents (ChatBubble)
 struct ChatBubble: View {
     let message: ChatMessage
-    
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             if message.isMe { Spacer() } else {
                 Circle().fill(Color.gray.opacity(0.3)).frame(width: 28, height: 28)
                     .overlay(Text(message.senderName.prefix(1)).font(.caption2).bold().foregroundColor(.gray))
             }
-            
             VStack(alignment: message.isMe ? .trailing : .leading, spacing: 2) {
                 if !message.isMe { Text(message.senderName).font(.caption2).foregroundColor(.gray).padding(.leading, 4) }
-                
                 if let base64 = message.imageUrl, let data = Data(base64Encoded: base64), let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable().scaledToFill().frame(width: 200, height: 150).cornerRadius(16).clipped()
+                    Image(uiImage: uiImage).resizable().scaledToFill().frame(width: 200, height: 150).cornerRadius(16).clipped()
                 } else {
-                    Text(message.text)
-                        .padding(.horizontal, 14).padding(.vertical, 8)
+                    Text(message.text).padding(.horizontal, 14).padding(.vertical, 8)
                         .background(message.isMe ? Color.blue : Color(UIColor.systemBackground))
-                        .foregroundColor(message.isMe ? .white : .primary)
-                        .cornerRadius(18)
-                        // Add tail logic here if desired, but rounded is cleaner for MVP
+                        .foregroundColor(message.isMe ? .white : .primary).cornerRadius(18)
                 }
             }
-            
             if !message.isMe { Spacer() }
         }
     }
 }
 
-// Keyboard Helper
 extension UIApplication {
-    func endEditing(_ force: Bool) {
-        self.windows.filter{$0.isKeyWindow}.first?.endEditing(force)
-    }
+    func endEditing(_ force: Bool) { self.windows.filter{$0.isKeyWindow}.first?.endEditing(force) }
 }

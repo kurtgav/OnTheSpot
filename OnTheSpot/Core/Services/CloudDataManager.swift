@@ -70,25 +70,35 @@ class CloudDataManager: ObservableObject {
         }
     }
     
-    // --- 2. USER PROFILE & STATS ---
-    func saveUserProfile(name: String, bio: String, location: String, tags: [String]) {
+    // UPDATED FUNCTION SIGNATURE & BODY
+    func saveUserProfile(name: String, bio: String, location: String, role: String, company: String, status: String, birthday: Date, tags: [String]) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
         let userData: [String: Any] = [
             "name": name,
             "bio": bio,
             "location": location,
-            "tags": tags, // New
+            "role": role,
+            "company": company,
+            "status": status,
+            "birthday": Timestamp(date: birthday), // Added Birthday (Firebase Timestamp)
+            "tags": tags,
             "points": DataManager.shared.contributionPoints
         ]
+        
         db.collection("users").document(uid).setData(userData, merge: true)
         
         // Update Local
         DataManager.shared.userName = name
         DataManager.shared.userBio = bio
         DataManager.shared.userLocation = location
+        DataManager.shared.userRole = role
+        DataManager.shared.userCompany = company
+        DataManager.shared.userStatus = status
+        DataManager.shared.userBirthday = birthday
         DataManager.shared.userTags = tags
     }
+
     
     func fetchUserProfile() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -99,7 +109,7 @@ class CloudDataManager: ObservableObject {
                 DataManager.shared.userBio = data["bio"] as? String ?? "Rookie"
                 DataManager.shared.userLocation = data["location"] as? String ?? "Unknown"
                 
-                // 🔥 SYNC STATS
+                // SYNC STATS
                 DataManager.shared.contributionPoints = data["points"] as? Int ?? 0
                 DataManager.shared.spotsAdded = data["spotsAdded"] as? Int ?? 0
             }
@@ -145,7 +155,7 @@ class CloudDataManager: ObservableObject {
         db.collection("plans").document(planId).delete()
     }
     
-    // 🔥 THIS IS THE REAL-TIME ENGINE
+    // THIS IS THE REAL-TIME ENGINE
     func listenToChat(planId: String) {
         db.collection("plans").document(planId).collection("messages")
             .order(by: "timestamp", descending: false)

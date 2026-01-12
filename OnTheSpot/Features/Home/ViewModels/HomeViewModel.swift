@@ -61,6 +61,8 @@ class HomeViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         self.currentUserLocation = location.coordinate
+
+        DataManager.shared.currentUserCoordinates = location.coordinate
     }
     
     // We don't need addNewSpot logic here anymore because HomeView calls CloudDataManager directly

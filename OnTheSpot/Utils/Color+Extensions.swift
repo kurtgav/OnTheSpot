@@ -2,23 +2,22 @@ import SwiftUI
 import UIKit
 
 extension Color {
-    // 1. Background: System Black (Dark) / System White (Light)
+    // bg system: white/black
     static let appBackground = Color(UIColor.systemBackground)
     
-    // 2. Text: White (Dark) / Black (Light)
+    // text: white/black
     static let primaryText = Color(UIColor.label)
     
-    // 3. Smart Matcha: Neon in Dark Mode, Darker Olive in Light Mode
+    // matcha/dark olive
     static let primaryAccent = Color(UIColor { traitCollection in
         return traitCollection.userInterfaceStyle == .dark ?
-            UIColor(hexString: "#C2E078") : // Bright Matcha
-            UIColor(hexString: "#556B2F")   // Dark Olive Green (Readable on White)
+            UIColor(hexString: "#C2E078") :
+            UIColor(hexString: "#556B2F")
     })
     
     static let secondaryText = Color.gray
 }
 
-// Helper to allow Hex codes inside the UIColor logic above
 extension UIColor {
     convenience init(hexString: String) {
         let hex = hexString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

@@ -8,7 +8,6 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
-        // This enables the Native Crop/Zoom Square
         picker.allowsEditing = true
         picker.sourceType = .photoLibrary
         return picker
@@ -28,7 +27,6 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            // Get the EDITED (Cropped) image
             if let editedImage = info[.editedImage] as? UIImage {
                 parent.image = editedImage
             } else if let originalImage = info[.originalImage] as? UIImage {

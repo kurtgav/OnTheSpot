@@ -12,109 +12,125 @@ struct LocationDetailView: View {
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
+        // ❌ REMOVED the "NavigationView" wrapper here.
+        // This ensures we use the main app's bar and the Back button works correctly.
         ZStack {
             Color(UIColor.systemBackground).ignoresSafeArea()
 
             VStack(spacing: 24) {
-                // 1. Icon & Header
+                // 1. Hero Icon & Header
                 VStack(spacing: 20) {
                     ZStack {
                         Circle()
-                            .fill(location.currentStatus.color.opacity(0.2))
-                            .frame(width: 140, height: 140)
-                            .blur(radius: 20)
+                            .fill(location.currentStatus.color.opacity(0.15))
+                            .frame(width: 120, height: 120)
                         
                         Image(systemName: location.currentStatus.iconName)
-                            .font(.system(size: 60))
+                            .font(.system(size: 55))
                             .foregroundColor(location.currentStatus.color)
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 20)
                     
-                    VStack(spacing: 8) {
+                    VStack(spacing: 6) {
                         Text(location.name)
-                            .font(.largeTitle).fontWeight(.bold).foregroundColor(.primary)
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
+                            .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                         
                         Text(location.category.uppercased())
-                            .font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                            .padding(.horizontal, 10).padding(.vertical, 4)
-                            .background(Color.gray.opacity(0.1)).cornerRadius(8)
+                            .font(.caption).fontWeight(.bold)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .cornerRadius(10)
                     }
                     
                     Text(location.currentStatus.title.uppercased())
-                        .font(.title3).fontWeight(.heavy).foregroundColor(location.currentStatus.color)
+                        .font(.headline).fontWeight(.black)
+                        .foregroundColor(location.currentStatus.color)
                         .padding(.horizontal, 24).padding(.vertical, 12)
-                        .background(location.currentStatus.color.opacity(0.1)).cornerRadius(16)
+                        .background(location.currentStatus.color.opacity(0.1))
+                        .cornerRadius(16)
                 }
                 .padding(.horizontal)
 
-                // (Removed the buttons from here)
-
                 Spacer()
                 
-                // 2. SOCIAL PLANS SECTION
-                VStack(alignment: .leading) {
+                // 2. Social Plans
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Active Hangouts")
-                        .font(.headline).foregroundColor(.primary)
+                        .font(.headline).fontWeight(.bold).foregroundColor(.primary)
+                        .padding(.horizontal)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             Button(action: { showCreatePlanSheet = true }) {
                                 VStack {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.title).foregroundColor(.primary)
-                                    Text("Host").font(.caption).foregroundColor(.primary)
+                                        .font(.title2).foregroundColor(.primary)
+                                    Text("Host").font(.caption).bold().foregroundColor(.primary)
                                 }
-                                .padding()
+                                .frame(width: 80, height: 100)
                                 .background(Color.primary.opacity(0.05))
-                                .cornerRadius(12)
+                                .cornerRadius(16)
                             }
                             
                             ForEach(CloudDataManager.shared.activePlans) { plan in
                                 PlanCard(plan: plan)
                             }
                         }
+                        .padding(.horizontal)
                     }
                 }
-                .padding(.horizontal)
                 .onAppear {
                     CloudDataManager.shared.listenForPlans(at: location.id.uuidString)
                 }
 
                 // 3. Status Update Buttons
-                StatusUpdateView(locationType: location.category) { newStatus in
-                    CloudDataManager.shared.updateStatus(for: location, newStatus: newStatus)
-                    DataManager.shared.triggerNotification(for: location)
+                VStack(alignment: .leading) {
+                    Text("Report Status").font(.headline).bold().padding(.horizontal)
+                    StatusUpdateView(locationType: location.category) { newStatus in
+                        CloudDataManager.shared.updateStatus(for: location, newStatus: newStatus)
+                        DataManager.shared.triggerNotification(for: location)
+                    }
                 }
                 
                 Spacer().frame(height: 20)
             }
-            .padding(.top, 20)
         }
         .navigationBarTitleDisplayMode(.inline)
-        // 🔥 FIXED: All 3 Buttons in Top Right Toolbar
+        // 🔥 FIXED: 3 Bubble Buttons in Top Right
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 20) {
-                    // 1. Navigate
+                HStack(spacing: 12) {
+                    // 1. Navigate Bubble
                     Button(action: openMaps) {
                         Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: 18))
                             .foregroundColor(.blue)
+                            .frame(width: 36, height: 36)
+                            .background(Color.blue.opacity(0.1))
+                            .clipShape(Circle())
                     }
                     
-                    // 2. Edit
+                    // 2. Edit Bubble
                     Button(action: { showEditSheet = true }) {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 18, weight: .bold))
+                        Image(systemName: "pencil")
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.primary)
+                            .frame(width: 36, height: 36)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .clipShape(Circle())
                     }
                     
-                    // 3. Delete
+                    // 3. Delete Bubble
                     Button(action: { showDeleteAlert = true }) {
                         Image(systemName: "trash")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.red)
+                            .frame(width: 36, height: 36)
+                            .background(Color.red.opacity(0.1))
+                            .clipShape(Circle())
                     }
                 }
             }
@@ -128,11 +144,9 @@ struct LocationDetailView: View {
         }
         .alert(isPresented: $showDeleteAlert) {
             Alert(
-                title: Text("Remove Spot?"), // Changed from "Delete"
-                message: Text("This will hide this spot from YOUR map only. Other users can still see it."),
-                primaryButton: .destructive(Text("Remove")) {
-                    deleteLocation()
-                },
+                title: Text("Remove Spot?"),
+                message: Text("Hide this spot from your map?"),
+                primaryButton: .destructive(Text("Remove")) { deleteLocation() },
                 secondaryButton: .cancel()
             )
         }
@@ -148,12 +162,11 @@ struct LocationDetailView: View {
     
     func deleteLocation() {
         CloudDataManager.shared.hideLocation(spotId: location.id.uuidString)
-        
         presentationMode.wrappedValue.dismiss()
     }
 }
 
-// (Keep PlanCard and EditLocationView structs as they were)
+// (Keep PlanCard and EditLocationView structs below exactly as they were)
 struct PlanCard: View {
     let plan: Plan
     @State private var showActionSheet = false
@@ -162,9 +175,11 @@ struct PlanCard: View {
     var isHost: Bool { plan.hostId == currentUserId }
     var isJoined: Bool { plan.participants.contains(currentUserId) }
     var isFull: Bool { plan.participants.count >= plan.maxParticipants }
+    
     var body: some View {
         ZStack {
             NavigationLink(destination: GroupChatView(plan: plan), isActive: $navigateToChat) { EmptyView() }
+            
             Button(action: { if isJoined { navigateToChat = true } else { showActionSheet = true } }) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(plan.tag.uppercased()).font(.system(size: 8, weight: .bold)).padding(4).background(Color.green.opacity(0.2)).foregroundColor(.green).cornerRadius(4)
@@ -196,6 +211,7 @@ struct EditLocationView: View {
     let allCategories = ["Study Spot", "Fast Food", "Canteen", "Cafe", "Terminal", "Parking", "Facility", "Laundry", "Gym", "Gas Station", "Barbershop", "Salon", "Mall", "Park", "Hospital", "Restroom"]
     @State private var searchText = ""
     var filteredCategories: [String] { searchText.isEmpty ? allCategories : allCategories.filter { $0.localizedCaseInsensitiveContains(searchText) } }
+    
     var body: some View {
         NavigationView {
             ZStack {

@@ -8,11 +8,11 @@ struct UserProfileView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // 1. Cover Image (Gradient)
+                // cover img
                 LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .frame(height: 150)
                 
-                // 2. Avatar (Overlapping)
+                // ava
                 ZStack {
                     Circle().fill(Color(UIColor.systemBackground)).frame(width: 110, height: 110)
                     Image(systemName: "person.crop.circle.fill")
@@ -22,7 +22,7 @@ struct UserProfileView: View {
                 .offset(y: -50)
                 .padding(.bottom, -50)
                 
-                // 3. Details
+                // details
                 VStack(spacing: 8) {
                     Text(viewModel.name)
                         .font(.title2).fontWeight(.bold)
@@ -42,7 +42,7 @@ struct UserProfileView: View {
                 
                 Divider()
                 
-                // 4. Stats Row
+                // stats row
                 HStack(spacing: 40) {
                     VStack {
                         Text("\(viewModel.points)").font(.title3).bold()
@@ -57,7 +57,7 @@ struct UserProfileView: View {
                 
                 Divider()
                 
-                // 5. Actions
+                // actions
                 Button(action: { CloudDataManager.shared.blockUser(uidToBlock: userId) }) {
                     Text("Block User")
                         .font(.headline).foregroundColor(.red)
@@ -74,7 +74,7 @@ struct UserProfileView: View {
     }
 }
 
-// ViewModel (Same as before)
+// view model
 class OtherUserViewModel: ObservableObject {
     @Published var name = "Loading..."
     @Published var bio = "..."
