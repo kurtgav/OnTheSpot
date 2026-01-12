@@ -65,12 +65,12 @@ struct OnboardingView: View {
                 Spacer()
                 // Typography
                 VStack(spacing: 16) {
-                    Text("Spot it. Share it.\nSkip the Line.")
-                        .font(.system(size: 36, weight: .heavy))
+                    Text("Spot it. Share it.\nJoin the Community.")
+                        .font(.system(size: 28, weight: .heavy))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     
-                    Text("Real-time crowd updates for your campus.\nKnow before you go.")
+                    Text("Real-time crowd updates in your area.\nKnow before you go.")
                         .font(.body)
                         .foregroundColor(.secondaryText)
                         .multilineTextAlignment(.center)
